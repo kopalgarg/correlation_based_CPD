@@ -7,6 +7,7 @@ from numpy import array
 from numpy import hstack
 from numpy.lib.npyio import load
 import pandas as pd
+import pdb
 import matplotlib.pyplot as plt
 import seaborn as sns
 import tensorflow as tf
@@ -23,13 +24,15 @@ from data.load_data import load_data
 from sklearn.metrics import mean_squared_error as mse
 import shap
 from data.load_data import split_sequences
-from klcpd import KL_CPD
+#from klcpd import KL_CPD
+from klcpd.model import KL_CPD
 import findpeaks
 from findpeaks import findpeaks
 import argparse
 import matplotlib.cm as cm
 import matplotlib as matplotlib
 import scipy
+import lightgbm as lgb
 
 all_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
       "light", "rem", "restless", "temperature_delta","total", "rmssd"] # make sure last col target 
@@ -63,8 +66,7 @@ if __name__ == '__main__':
         y_pred_test = model.predict(X_test)
         print(mse(y_test, y_pred_test))
     else:
-        lgbmForecast_df, model, x_train = lgbm_train(\
-                cols=all_columns,\
+        lgbmForecast_df, model, x_train = lgbm_train(df, cols=all_columns,
                 trg=all_columns[-1], train_ratio=0.9, valid_ratio=0.09, test_ratio=0.01)
         trg = all_columns[-1]
         # MSE
@@ -190,12 +192,13 @@ if __name__ == '__main__':
             explainer = shap.TreeExplainer(model = model,feature_perturbation='tree_path_dependent')
             top_1 = []
             top_2 = []
+            sub_df = sub_df[all_columns[:-1]]
             for i in range(len(preds_df[0].values[a])):
                 if i <= len(preds_df[0].values[a])-2:
                     sub = sub_df[a[i]:a[i+1]]
                     if sub.shape[0] >= args.n_steps:
                         shap_values = explainer.shap_values(X= sub)
-                        shap.summary_plot(shap_values=shap_values, features= sub, feature_names=all_columns[-1], plot_type="violin", show =False)
+                        shap.summary_plot(shap_values=shap_values, features= sub, feature_names=all_columns[:-1], plot_type="violin", show =False)
                         path = participant+'_'+str(i)+'_summary_plot.png'
                         plt.savefig(os.path.join('results', exp,participant, path), format = "png",dpi = 150,bbox_inches = 'tight')
                         vals= np.abs(shap_values).mean(0)
