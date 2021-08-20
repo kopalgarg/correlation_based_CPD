@@ -33,25 +33,33 @@ from data.load_data import split_sequences
 from klcpd.klcpd.model import KL_CPD
 import findpeaks
 from findpeaks import findpeaks
+import argparse
 
-# args
-n_steps = 30 # number of days of data used in the LSTM model
-n_features = 11 # number of features used for LSTM model
-r_window_size = 30 # window size for running correlations 
-
-data_path = 'data/' # should contain a train_df.csv, test_df.csv, val_df.csv
 all_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
       "light", "rem", "restless", "temperature_delta","total", "rmssd"] # last col target 
 in_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
       "light", "rem", "restless", "temperature_delta","total"]
+
 if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser(description='Correlation-based CPD')
+    parser.add_argument('--model', type=str, default='LightGBM', help='Choose "LSTM" or "LightGBM"')
+    parser.add_argument('--n_steps', type=int, default=15, help = 'number of days of data used in prediction model')
+    parser.add_argument('--r_window_size', type=int, default=11, help = 'window size for running correlations ')
+    parser.add_argument('--data_path', type=str, default='data/', help = 'should contain a train_df.csv, test_df.csv, val_df.csv')
+
+    args = parser.parse_args()
 
     # load data
-    X, y, X_val, y_val, X_test, y_test = load_data(data_path, n_steps, all_columns)
+    X, y, X_val, y_val, X_test, y_test = load_data(args.data_path, args.n_steps, all_columns)
     df = pd.read_csv('data/test_df.csv')
     # create model
-    model = LSTM(n_steps,n_features)
-    model.fit(X, y, epochs=200, batch_size=50, validation_data=(X_val, y_val), shuffle=False)
+    if args.model == 'LSTM':
+        model = LSTM(args.n_steps, n_features = X.shape[0])
+        model.fit(X, y, epochs=200, batch_size=50, validation_data=(X_val, y_val), shuffle=False)
+    else:
+        model = LSTM(args.n_steps, n_features = X.shape[0])
+        model.fit(X, y, epochs=200, batch_size=50, validation_data=(X_val, y_val), shuffle=False)
     # MSE
     y_pred_test = model.predict(X_test)
     print(mse(y_test, y_pred_test))
@@ -70,12 +78,12 @@ if __name__ == '__main__':
         df_sub = pd.DataFrame(standardized_data)
         df_sub.columns = KLCPD_columns
         # Compute running Pearson correlations
-        run_corr = np.empty([(df_sub.shape[1]*df_sub.shape[1]-1)/2, df_sub.shape[0]-r_window_size])
+        run_corr = np.empty([(df_sub.shape[1]*df_sub.shape[1]-1)/2, df_sub.shape[0]-args.r_window_size])
         i=0
         for column_1 in df_sub:
             for column_2 in df_sub:
                 if (column_1 != column_2) and (column_1+column_2 not in combination):
-                    run_corr[i] = df_sub[column_1].rolling(window=r_window_size).corr(df_sub[column_2])[r_window_size:]
+                    run_corr[i] = df_sub[column_1].rolling(window=args.r_window_size).corr(df_sub[column_2])[args.r_window_size:]
                     i+=1
         
         # time series using the running correlations
