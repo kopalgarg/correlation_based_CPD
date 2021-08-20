@@ -53,7 +53,7 @@ if __name__ == '__main__':
     # load data
     X, y, X_val, y_val, X_test, y_test = load_data(args.data_path, args.n_steps, all_columns)
     df = pd.read_csv(os.path.join(args.data_path, 'test_df.csv'))
-
+    n_features = X.shape[2]
     # create model
     if args.model == 'LSTM':
         model = LSTM(args.n_steps, n_features = X.shape[2])
@@ -119,7 +119,22 @@ if __name__ == '__main__':
           explainer = shap.DeepExplainer(model, X[:1000])
           top_1 = []
           top_2 = []
-        # to do 
-            # split the time series for this individual into windows 
-            # compute shap values per window
-            # save plots to a folder (for the individual within the experiment folder)
+          for i in range(len(preds_df[0].values[a])):
+            if i <= len(preds_df[0].values[a])-2:
+                sub = df_sub[a[i]:a[i+1]]
+                if sub.shape[0] >= args.n_steps:
+                    X_test,y_test = split_sequences(sub.values, args.n_steps)
+                    shap_values = explainer.shap_values(X_test, check_additivity=False)
+                    # avg SHAP for all observations
+                    shap_average_value = np.abs(shap_values[0]).mean(axis=0)
+                    x_average_value = pd.DataFrame(data=X_test.mean(axis=0), columns = input_columns)
+                    shap_values_2D = shap_values[0].reshape(-1,n_features)
+                    X_test_2D = X_test.reshape(-1,n_features)
+                    x_test_2d = pd.DataFrame(data=X_test_2D, columns = input_columns)
+                    shap.summary_plot(shap_values_2D, x_test_2d, show=False)
+                    plt.savefig(os.path.join(participant,'_',i,'_summary_plot.png'))
+                    vals= np.abs(shap_values_2D).mean(0)
+                    feature_importance = pd.DataFrame(list(zip(features, vals)),columns=['col_name','feature_importance_vals'])
+                    feature_importance.sort_values(by=['feature_importance_vals'],ascending=False,inplace=True)
+                    top_1.append(feature_importance['col_name'].iloc[0])
+                    top_2.append(feature_importance['col_name'].iloc[1])
