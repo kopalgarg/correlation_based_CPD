@@ -28,9 +28,9 @@ from sklearn.preprocessing import MinMaxScaler
 
 def load_data(data_path, n_steps, all_columns):
 
-    train_df = pd.read_csv(data_path, "train_df.csv",low_memory=False)
-    test_df = pd.read_csv(data_path,"test_df.csv",low_memory=False)
-    val_df = pd.read_csv(data_path,"val_df.csv",low_memory=False)
+    train_df = pd.read_csv(os.path.join(data_path, 'train_df.csv'),low_memory=False)
+    test_df = pd.read_csv(os.path.join(data_path, 'test_df.csv'),low_memory=False)
+    val_df = pd.read_csv(os.path.join(data_path, 'val_df.csv'),low_memory=False)
 
     train_df = train_df[all_columns]
     test_df = test_df[all_columns]
