@@ -36,8 +36,7 @@ import lightgbm as lgb
 
 all_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
       "light", "rem", "restless", "temperature_delta","total", "rmssd"] # make sure last col target 
-input_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
-      "light", "rem", "restless", "temperature_delta","total"]
+
 
 if __name__ == '__main__':
     
