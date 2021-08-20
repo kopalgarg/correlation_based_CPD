@@ -64,8 +64,7 @@ def load_data(data_path, n_steps, all_columns):
 
     dataset_val = val_df.values
     X_val, y_val = split_sequences(dataset_val, n_steps)
-
-    return X, y, X_val, y_val, X_test, y_val
+    return X, y, X_val, y_val, X_test, y_test
 
 
 # split a multivariate sequence into samples
