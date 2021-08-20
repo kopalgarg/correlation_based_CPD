@@ -62,7 +62,7 @@ if __name__ == '__main__':
     # create model
     if args.model == 'LSTM':
         model = LSTM(args.n_steps, n_features = X.shape[2])
-        model.fit(X, y, epochs=1, batch_size=50, validation_data=(X_val, y_val), shuffle=False)
+        model.fit(X, y, epochs=20, batch_size=50, validation_data=(X_val, y_val), shuffle=False)
         # MSE
         print("Mean Squared Error:")
         y_pred_test = model.predict(X_test)
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     # KL-CPD
     KLCPD_columns = ["deep", "hr_average", "rmssd", 'temperature_delta','breath_average','rem']
 
-    for participant in df.participant_id.unique()[:10]:
+    for participant in df.participant_id.unique()[:10]: # run this for just first 10 participants, but can change to all
         df_sub = df[df['participant_id']==participant]
         df_sub = df_sub.fillna(method='ffill')
         df_sub = df_sub.fillna(method='bfill')
