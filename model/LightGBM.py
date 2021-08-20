@@ -26,7 +26,7 @@ def lgbm_train(df, cols=["hr_average","rmssd", "temperature_delta","pss4_1", "br
         'bagging_freq':0,
         'min_child_samples':5
     }
-    gbm = lgb.train(params, lgb_train, num_boost_round=100, valid_sets=[lgb_train, lgb_valid], early_stopping_rounds=100)
+    gbm = lgb.train(params, lgb_train, num_boost_round=200, valid_sets=[lgb_train, lgb_valid], early_stopping_rounds=200)
     #make predict dataframe
     pre_df = pd.DataFrame()
     pre_df[trg] = gbm.predict(X_test, num_iteration=gbm.best_iteration)
