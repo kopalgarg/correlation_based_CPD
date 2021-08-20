@@ -42,7 +42,7 @@ input_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Correlation-based CPD')
-    parser.add_argument('--model', type=str, default='LSTM', help='Choose "LSTM" or "LightGBM"')
+    parser.add_argument('--model', type=str, default='LightGBM', help='Choose "LSTM" or "LightGBM"')
     parser.add_argument('--n_steps', type=int, default=15, help = 'number of days of data used in prediction model')
     parser.add_argument('--r_window_size', type=int, default=30, help = 'window size for running correlations ')
     parser.add_argument('--data_path', type=str, default='data/', help = 'should contain a train_df.csv, test_df.csv, val_df.csv')
