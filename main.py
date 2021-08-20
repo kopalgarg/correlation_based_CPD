@@ -182,6 +182,7 @@ if __name__ == '__main__':
                     path = participant+'_'+str(i)+'_summary_plot.png'
                     
                     plt.savefig(os.path.join('results', exp,participant, path), format = "png",dpi = 150,bbox_inches = 'tight')
+                    plt.close()
                     vals= np.abs(shap_values_2D).mean(0)
                     feature_importance = pd.DataFrame(list(zip(all_columns[:-1], vals)),columns=['col_name','feature_importance_vals'])
                     feature_importance.sort_values(by=['feature_importance_vals'],ascending=False,inplace=True)
@@ -201,6 +202,7 @@ if __name__ == '__main__':
                         shap.summary_plot(shap_values=shap_values, features= sub, feature_names=all_columns[:-1], plot_type="violin", show =False)
                         path = participant+'_'+str(i)+'_summary_plot.png'
                         plt.savefig(os.path.join('results', exp,participant, path), format = "png",dpi = 150,bbox_inches = 'tight')
+                        plt.close()
                         vals= np.abs(shap_values).mean(0)
                         feature_importance = pd.DataFrame(list(zip(all_columns[:-1],vals)),columns=['col_name','feature_importance_vals'])
                         feature_importance.sort_values(by=['feature_importance_vals'],ascending=False,inplace=True)
