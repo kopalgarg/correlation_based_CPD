@@ -35,9 +35,9 @@ import findpeaks
 from findpeaks import findpeaks
 
 # args
-n_steps = 30
-n_features = 11
-r_window_size = 30
+n_steps = 30 # number of days of data used in the LSTM model
+n_features = 11 # number of features used for LSTM model
+r_window_size = 30 # window size for running correlations 
 
 data_path = 'data/' # should contain a train_df.csv, test_df.csv, val_df.csv
 all_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     df = pd.read_csv('data/test_df.csv')
     # create model
     model = LSTM(n_steps,n_features)
-    model.fit(X, y, epochs=1, batch_size=50, validation_data=(X_val, y_val), shuffle=False)
+    model.fit(X, y, epochs=200, batch_size=50, validation_data=(X_val, y_val), shuffle=False)
     # MSE
     y_pred_test = model.predict(X_test)
     print(mse(y_test, y_pred_test))
@@ -104,3 +104,7 @@ if __name__ == '__main__':
         a = results['x'].values
 
         sub_df = sub_df[in_columns]
+        # to do 
+            # split the time series for this individual into windows 
+            # compute shap values per window
+            # save plots to a folder (for the individual within the experiment folder)
