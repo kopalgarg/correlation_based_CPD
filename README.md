@@ -1,9 +1,12 @@
-Requirements \
-```pip install -r requirements.txt
+Requirements 
+```
+pip install -r requirements.txt
 ```
 
-Run\
-`python main.py --CPD_data_type = 'raw' --model 'LightGBM' --n_steps 15 r_window_size 15`
+Run
+```
+python main.py --CPD_data_type = 'raw' --model 'LightGBM' --n_steps 15 r_window_size 15
+```
 
 `--model` Choose "LSTM" or "LightGBM" \
 `--n_steps` Number of days of data used to make predictions 1 day into the future \
