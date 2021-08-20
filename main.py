@@ -47,13 +47,15 @@ if __name__ == '__main__':
     parser.add_argument('--n_steps', type=int, default=15, help = 'number of days of data used in prediction model')
     parser.add_argument('--r_window_size', type=int, default=11, help = 'window size for running correlations ')
     parser.add_argument('--data_path', type=str, default='data/', help = 'should contain a train_df.csv, test_df.csv, val_df.csv')
-    parser.add_argument('--exp', type = str, default = 'run01', help = 'experiment name')
     args = parser.parse_args()
-
+    
     # load data
     X, y, X_val, y_val, X_test, y_test = load_data(args.data_path, args.n_steps, all_columns)
     df = pd.read_csv(os.path.join(args.data_path, 'test_df.csv'))
+    
     n_features = X.shape[2]
+    exp = (args.model+'_'+str(args.r_window_size)+'_'+str(args.n_steps)+'_run01')
+    
     # create model
     if args.model == 'LSTM':
         model = LSTM(args.n_steps, n_features = X.shape[2])
@@ -117,7 +119,7 @@ if __name__ == '__main__':
         if not os.path.exists(os.path.join('results', exp)): os.mkdir(os.path.join('results', exp))
 
         sub_df = df[df['participant_id']==participant][all_columns]
-        import pdb; pdb.set_trace()
+        
         if args.model == 'LSTM':
           explainer = shap.DeepExplainer(model, X[:1000])
           top_1 = []
@@ -126,7 +128,7 @@ if __name__ == '__main__':
             if i <= len(preds_df[0].values[a])-2:
                 sub = sub_df[a[i]:a[i+1]]
                 if sub.shape[0] >= args.n_steps:
-                    import pdb; pdb.set_trace()
+                    
                     X_test,y_test = split_sequences(sub.values, args.n_steps)
                     shap_values = explainer.shap_values(X_test, check_additivity=False)
                     # avg SHAP for all observations
@@ -137,9 +139,10 @@ if __name__ == '__main__':
                     x_test_2d = pd.DataFrame(data=X_test_2D, columns = all_columns[:-1])
                     shap.summary_plot(shap_values_2D, x_test_2d, show=False)
                     path = participant+'_'+str(i)+'_summary_plot.png'
-                    plt.savefig(os.path.join('results', args.exp, path), format = "png",dpi = 150,bbox_inches = 'tight')
+                    if not os.path.exists(os.path.join('results', exp, participant)): os.mkdir(os.path.join('results', exp, participant))
+                    plt.savefig(os.path.join('results', exp,participant, path), format = "png",dpi = 150,bbox_inches = 'tight')
                     vals= np.abs(shap_values_2D).mean(0)
-                    feature_importance = pd.DataFrame(list(zip(features, vals)),columns=['col_name','feature_importance_vals'])
+                    feature_importance = pd.DataFrame(list(zip(all_columns[:-1], vals)),columns=['col_name','feature_importance_vals'])
                     feature_importance.sort_values(by=['feature_importance_vals'],ascending=False,inplace=True)
                     top_1.append(feature_importance['col_name'].iloc[0])
                     top_2.append(feature_importance['col_name'].iloc[1])
