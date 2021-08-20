@@ -237,8 +237,8 @@ class KL_CPD(nn.Module):
 if __name__ == '__main__':
     dim, seq_length = 1, 100
     ts = np.random.randn(seq_length,dim)
-    device = torch.device('cuda')
-    model = KL_CPD(dim).to(device)
+    #device = torch.device('cuda')
+    model = KL_CPD(dim)#.to(device)
     model.fit(ts)
     preds = model.predict(ts)
     print(preds)
