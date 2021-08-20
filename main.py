@@ -13,16 +13,8 @@ import tensorflow as tf
 import torch
 import torch.nn as nn
 import math
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_squared_error
 from datetime import datetime, timedelta 
 from sklearn.preprocessing import MinMaxScaler
-from scipy.io import arff
-from sklearn.metrics import precision_score, roc_auc_score
-from scipy.special import expit
-from scipy.signal import butter, lfilter, freqz
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from datetime import datetime
 from sklearn.model_selection import train_test_split
 from model.LSTM import LSTM
@@ -36,6 +28,7 @@ from findpeaks import findpeaks
 import argparse
 import matplotlib.cm as cm
 import matplotlib as matplotlib
+import scipy
 
 all_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
       "light", "rem", "restless", "temperature_delta","total", "rmssd"] # last col target 
@@ -49,6 +42,8 @@ if __name__ == '__main__':
     parser.add_argument('--n_steps', type=int, default=15, help = 'number of days of data used in prediction model')
     parser.add_argument('--r_window_size', type=int, default=11, help = 'window size for running correlations ')
     parser.add_argument('--data_path', type=str, default='data/', help = 'should contain a train_df.csv, test_df.csv, val_df.csv')
+    parser.add_argument('--CPD_data_type', type=str, default='running_correlations', help = 'use "raw" or "running_correlations" for CPD')
+
     args = parser.parse_args()
     
     # load data
@@ -70,7 +65,7 @@ if __name__ == '__main__':
     print(mse(y_test, y_pred_test))
 
     # KL-CPD
-    KLCPD_columns = ["deep", "hr_average", "rmssd", 'temperature_delta','breath_average','rem', 'daily_shifts']
+    KLCPD_columns = ["deep", "hr_average", "rmssd", 'temperature_delta','breath_average','rem']
 
     for participant in df.participant_id.unique():
         df_sub = df[df['participant_id']==participant]
@@ -82,9 +77,9 @@ if __name__ == '__main__':
         df_sub = pd.DataFrame(standardized_data)
         df_sub.columns = KLCPD_columns
         # Compute running Pearson correlations
-        f0, (ax1) = plt.subplots(1, 1 ,sharex='col')
-        f0.set_figheight(6)
-        f0.set_figwidth(16)
+        f, (ax1) = plt.subplots(1, 1 ,sharex='col')
+        f.set_figheight(6)
+        f.set_figwidth(16)
         combination = []
         run_corr = np.empty([int(df_sub.shape[1]*(df_sub.shape[1]-1)/2), df_sub.shape[0]-args.r_window_size])
         i=0
@@ -97,15 +92,21 @@ if __name__ == '__main__':
                         ax1.plot(df_sub[column_1].rolling(window=args.r_window_size).corr(df_sub[column_2]),
                         label = (column_1,column_2))
                     else:
-                        ax1.plot(df_sub[column_1].rolling(window=args.r_window_size).corr(df_sub[column_2]), label = (column_1,column_2))
+                        ax1.plot(df_sub[column_1].rolling(window=args.r_window_size).corr(df_sub[column_2]), alpha = .2)
                 combination.append(column_1+column_2)
                 combination.append(column_2+column_1)
         
-        # save plot
+        # save running correlations plot
+        if not os.path.exists(os.path.join('results', exp)): os.mkdir(os.path.join('results', exp))
+        if not os.path.exists(os.path.join('results', exp, participant)): os.mkdir(os.path.join('results', exp, participant))
         ax1.set_ylim([-1, 1])
         ax1.legend();
         ax1.set_title('Pearson r')
         ax1.legend(loc='right');
+
+        f.savefig(os.path.join('results', exp, participant, 'running_correlations.png'), format = "png")
+        
+        # 7-day rolling average plot
         df_sub[ 'deep_rolling_mean' ] = df_sub.deep.rolling(7).mean()
 
         df_sub[ 'hr_average_rolling_mean' ] = df_sub.deep.rolling(7).mean()
@@ -118,18 +119,20 @@ if __name__ == '__main__':
         df_sub[ 'rem_rolling_mean' ] = df_sub.rem.rolling(7).mean()
 
         df_sub[args.r_window_size:].plot(subplots = True, legend =True, figsize=(16, 8))
-
-
-        # time series using the running correlations
-        ts = run_corr.T
+        plt.savefig(os.path.join('results', exp, participant, 'raw_signal.png'), format = "png")
+        plt.close(); plt.close()
         
-        dim, seq_length = ts.shape[1], ts.shape[0]
+        if args.CPD_data_type == 'raw':
+          ts = df_sub[args.r_window_size:].values
+        else:
+          # time series using the running correlations
+          ts = run_corr.T
 
+        dim, seq_length = ts.shape[1], ts.shape[0]
         # fit KL-CPD model and derive predictions 
         model_kl = KL_CPD(dim)
-        model_kl.fit(np.nan_to_num(ts, nan= 0.0))
+        model_kl.fit(ts)
         preds = model_kl.predict(ts)
-
 
         ts_df = pd.DataFrame(data=ts)
 
@@ -145,7 +148,6 @@ if __name__ == '__main__':
         results = results.loc[results['valley'] == True]
         a = results['x'].values
         
-        if not os.path.exists(os.path.join('results', exp)): os.mkdir(os.path.join('results', exp))
 
         sub_df = df[df['participant_id']==participant][all_columns]
         
@@ -168,7 +170,7 @@ if __name__ == '__main__':
                     x_test_2d = pd.DataFrame(data=X_test_2D, columns = all_columns[:-1])
                     shap.summary_plot(shap_values_2D, x_test_2d, show=False)
                     path = participant+'_'+str(i)+'_summary_plot.png'
-                    if not os.path.exists(os.path.join('results', exp, participant)): os.mkdir(os.path.join('results', exp, participant))
+                    
                     plt.savefig(os.path.join('results', exp,participant, path), format = "png",dpi = 150,bbox_inches = 'tight')
                     vals= np.abs(shap_values_2D).mean(0)
                     feature_importance = pd.DataFrame(list(zip(all_columns[:-1], vals)),columns=['col_name','feature_importance_vals'])
@@ -230,6 +232,6 @@ if __name__ == '__main__':
         ax1.plot(preds_df)
         ax1.plot(a ,preds_df[0].values[a], "x", color = 'red', markersize = 18)
         f.savefig(os.path.join('results', exp, participant, 'feature_importance.png'), format = "png")
-        f0.savefig(os.path.join('results', exp, participant, 'running_correlations.png'), format = "png")
+        
 
  
