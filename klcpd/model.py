@@ -71,10 +71,10 @@ class NetD(nn.Module):
         return X_enc, X_dec
 
 
-class KL_CPD(nn.Module):
+class KL_CPD(nn.Module, p_wnd_dim = 25, f_wnd_dim = 10):
     def __init__(self, D:int, critic_iters:int=5,
             lambda_ae:float=0.001, lambda_real:float=0.1,
-            p_wnd_dim:int=25, f_wnd_dim:int=10, sub_dim:int=1, RNN_hid_dim:int=10):
+            p_wnd_dim:int=self.p_wnd_dim, f_wnd_dim:int=self.f_wnd_dim, sub_dim:int=1, RNN_hid_dim:int=10):
         super().__init__()
         self.p_wnd_dim = p_wnd_dim
         self.f_wnd_dim = f_wnd_dim
