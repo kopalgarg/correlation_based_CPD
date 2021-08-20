@@ -43,11 +43,11 @@ input_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Correlation-based CPD')
-    parser.add_argument('--model', type=str, default='LightGBM', help='Choose "LSTM" or "LightGBM"')
+    parser.add_argument('--model', type=str, default='LSTM', help='Choose "LSTM" or "LightGBM"')
     parser.add_argument('--n_steps', type=int, default=15, help = 'number of days of data used in prediction model')
     parser.add_argument('--r_window_size', type=int, default=11, help = 'window size for running correlations ')
     parser.add_argument('--data_path', type=str, default='data/', help = 'should contain a train_df.csv, test_df.csv, val_df.csv')
-
+    parser.add_argument('--exp', type = str, default = 'run01', help = 'experiment name')
     args = parser.parse_args()
 
     # load data
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         
         # time series using the running correlations
         ts = run_corr.T
-        import pdb; pdb.set_trace()
+        
         dim, seq_length = ts.shape[1], ts.shape[0]
 
         # fit KL-CPD model and derive predictions 
@@ -104,35 +104,40 @@ if __name__ == '__main__':
 
         preds_df =  pd.DataFrame(data=preds)
         # peak detection
-        X = preds_df[0]
+        x = preds_df[0]
         # initialize
         fp = findpeaks(lookahead=4)
-        results = fp.fit(X)
+        results = fp.fit(x)
         # plot
         # fp.plot()
         results = results.get('df')
         results = results.loc[results['valley'] == True]
         a = results['x'].values
+        
+        if not os.path.exists(os.path.join('results', exp)): os.mkdir(os.path.join('results', exp))
 
-        sub_df = df[input_columns]
+        sub_df = df[df['participant_id']==participant][all_columns]
+        import pdb; pdb.set_trace()
         if args.model == 'LSTM':
           explainer = shap.DeepExplainer(model, X[:1000])
           top_1 = []
           top_2 = []
           for i in range(len(preds_df[0].values[a])):
             if i <= len(preds_df[0].values[a])-2:
-                sub = df_sub[a[i]:a[i+1]]
+                sub = sub_df[a[i]:a[i+1]]
                 if sub.shape[0] >= args.n_steps:
+                    import pdb; pdb.set_trace()
                     X_test,y_test = split_sequences(sub.values, args.n_steps)
                     shap_values = explainer.shap_values(X_test, check_additivity=False)
                     # avg SHAP for all observations
                     shap_average_value = np.abs(shap_values[0]).mean(axis=0)
-                    x_average_value = pd.DataFrame(data=X_test.mean(axis=0), columns = input_columns)
+                    x_average_value = pd.DataFrame(data=X_test.mean(axis=0), columns = all_columns[:-1])
                     shap_values_2D = shap_values[0].reshape(-1,n_features)
                     X_test_2D = X_test.reshape(-1,n_features)
-                    x_test_2d = pd.DataFrame(data=X_test_2D, columns = input_columns)
+                    x_test_2d = pd.DataFrame(data=X_test_2D, columns = all_columns[:-1])
                     shap.summary_plot(shap_values_2D, x_test_2d, show=False)
-                    plt.savefig(os.path.join(participant,'_',i,'_summary_plot.png'))
+                    path = participant+'_'+str(i)+'_summary_plot.png'
+                    plt.savefig(os.path.join('results', args.exp, path), format = "png",dpi = 150,bbox_inches = 'tight')
                     vals= np.abs(shap_values_2D).mean(0)
                     feature_importance = pd.DataFrame(list(zip(features, vals)),columns=['col_name','feature_importance_vals'])
                     feature_importance.sort_values(by=['feature_importance_vals'],ascending=False,inplace=True)
