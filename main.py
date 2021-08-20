@@ -30,7 +30,7 @@ from data.load_data import load_data
 from sklearn.metrics import mean_squared_error as mse
 import shap
 from data.load_data import split_sequences
-from klcpd.klcpd.model import KL_CPD
+import klcpd
 import findpeaks
 from findpeaks import findpeaks
 
