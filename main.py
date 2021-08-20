@@ -18,6 +18,7 @@ from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from sklearn.model_selection import train_test_split
 from model.LSTM import LSTM
+from model.LightGBM import lgbm_train
 from data.load_data import load_data
 from sklearn.metrics import mean_squared_error as mse
 import shap
@@ -31,7 +32,7 @@ import matplotlib as matplotlib
 import scipy
 
 all_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
-      "light", "rem", "restless", "temperature_delta","total", "rmssd"] # last col target 
+      "light", "rem", "restless", "temperature_delta","total", "rmssd"] # make sure last col target 
 input_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
       "light", "rem", "restless", "temperature_delta","total"]
 
@@ -57,12 +58,19 @@ if __name__ == '__main__':
     if args.model == 'LSTM':
         model = LSTM(args.n_steps, n_features = X.shape[2])
         model.fit(X, y, epochs=1, batch_size=50, validation_data=(X_val, y_val), shuffle=False)
+        # MSE
+        print("Mean Squared Error:")
+        y_pred_test = model.predict(X_test)
+        print(mse(y_test, y_pred_test))
     else:
-        model = LSTM(args.n_steps, n_features = X.shape[2])
-        model.fit(X, y, epochs=1, batch_size=50, validation_data=(X_val, y_val), shuffle=False)
-    # MSE
-    y_pred_test = model.predict(X_test)
-    print(mse(y_test, y_pred_test))
+        lgbmForecast_df, model, x_train = lgbm_train(\
+                cols=all_columns,\
+                trg=all_columns[-1], train_ratio=0.9, valid_ratio=0.09, test_ratio=0.01)
+        trg = all_columns[-1]
+        # MSE
+        print("Mean Squared Error:")
+        print(mse(df[trg][-len(lgbmForecast_df):], lgbmForecast_df[trg]))
+
 
     # KL-CPD
     KLCPD_columns = ["deep", "hr_average", "rmssd", 'temperature_delta','breath_average','rem']
@@ -178,7 +186,23 @@ if __name__ == '__main__':
                     top_1.append(feature_importance['col_name'].iloc[0])
                     top_2.append(feature_importance['col_name'].iloc[1])
         
-        
+        if args.model == 'LightGBM':
+            explainer = shap.TreeExplainer(model = model,feature_perturbation='tree_path_dependent')
+            top_1 = []
+            top_2 = []
+            for i in range(len(preds_df[0].values[a])):
+                if i <= len(preds_df[0].values[a])-2:
+                    sub = sub_df[a[i]:a[i+1]]
+                    if sub.shape[0] >= args.n_steps:
+                        shap_values = explainer.shap_values(X= sub)
+                        shap.summary_plot(shap_values=shap_values, features= sub, feature_names=all_columns[-1], plot_type="violin", show =False)
+                        path = participant+'_'+str(i)+'_summary_plot.png'
+                        plt.savefig(os.path.join('results', exp,participant, path), format = "png",dpi = 150,bbox_inches = 'tight')
+                        vals= np.abs(shap_values).mean(0)
+                        feature_importance = pd.DataFrame(list(zip(all_columns[:-1],vals)),columns=['col_name','feature_importance_vals'])
+                        feature_importance.sort_values(by=['feature_importance_vals'],ascending=False,inplace=True)
+                        top_1.append(feature_importance['col_name'].iloc[0])
+                        top_2.append(feature_importance['col_name'].iloc[1])
         # save the feature importance plots 
         features = all_columns[:-1]
         f = range(1,len(features)+1)
