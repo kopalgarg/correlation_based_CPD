@@ -8,3 +8,4 @@ peakdetect
 shap
 argparse
 lightgbm
+seaborn
