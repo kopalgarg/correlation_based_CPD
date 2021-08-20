@@ -34,6 +34,8 @@ from klcpd import KL_CPD
 import findpeaks
 from findpeaks import findpeaks
 import argparse
+import matplotlib.cm as cm
+import matplotlib as matplotlib
 
 all_columns = ["awake","breath_average", "deep", "duration", "hr_average", "hr_lowest",
       "light", "rem", "restless", "temperature_delta","total", "rmssd"] # last col target 
@@ -80,6 +82,9 @@ if __name__ == '__main__':
         df_sub = pd.DataFrame(standardized_data)
         df_sub.columns = KLCPD_columns
         # Compute running Pearson correlations
+        f0, (ax1) = plt.subplots(1, 1 ,sharex='col')
+        f0.set_figheight(6)
+        f0.set_figwidth(16)
         combination = []
         run_corr = np.empty([int(df_sub.shape[1]*(df_sub.shape[1]-1)/2), df_sub.shape[0]-args.r_window_size])
         i=0
@@ -88,9 +93,33 @@ if __name__ == '__main__':
                 if (column_1 != column_2) and (column_1+column_2 not in combination):
                     run_corr[i] = df_sub[column_1].rolling(window=args.r_window_size).corr(df_sub[column_2])[args.r_window_size:]
                     i+=1
+                    if (abs(scipy.stats.pearsonr(df_sub[column_1], df_sub[column_2])[0]) > 0.25):
+                        ax1.plot(df_sub[column_1].rolling(window=args.r_window_size).corr(df_sub[column_2]),
+                        label = (column_1,column_2))
+                    else:
+                        ax1.plot(df_sub[column_1].rolling(window=args.r_window_size).corr(df_sub[column_2]), label = (column_1,column_2))
                 combination.append(column_1+column_2)
                 combination.append(column_2+column_1)
         
+        # save plot
+        ax1.set_ylim([-1, 1])
+        ax1.legend();
+        ax1.set_title('Pearson r')
+        ax1.legend(loc='right');
+        df_sub[ 'deep_rolling_mean' ] = df_sub.deep.rolling(7).mean()
+
+        df_sub[ 'hr_average_rolling_mean' ] = df_sub.deep.rolling(7).mean()
+        df_sub[ 'rmssd_rolling_mean' ] = df_sub.rmssd.rolling(7).mean()
+
+        df_sub[ 'temp_delta_rolling_mean' ] = df_sub.temperature_delta.rolling(7).mean()
+
+        df_sub[ 'breath_average_rolling_mean' ] = df_sub.breath_average.rolling(7).mean()
+
+        df_sub[ 'rem_rolling_mean' ] = df_sub.rem.rolling(7).mean()
+
+        df_sub[args.r_window_size:].plot(subplots = True, legend =True, figsize=(16, 8))
+
+
         # time series using the running correlations
         ts = run_corr.T
         
@@ -146,3 +175,61 @@ if __name__ == '__main__':
                     feature_importance.sort_values(by=['feature_importance_vals'],ascending=False,inplace=True)
                     top_1.append(feature_importance['col_name'].iloc[0])
                     top_2.append(feature_importance['col_name'].iloc[1])
+        
+        
+        # save the feature importance plots 
+        features = all_columns[:-1]
+        f = range(1,len(features)+1)
+        # map values 
+        features_dct = dict(zip(features, f))
+        features_dct_inv = {v: k for k, v in features_dct.items()}
+
+        top_1 = list(map(features_dct.get, top_1))
+        top_2 = list(map(features_dct.get, top_2))
+
+        b = []
+        for i in range(len(a)):
+            if i <= len(preds_df[0].values[a])-2:
+                if a[i+1]-a[i] >= args.n_steps:
+                    b.append(a[i])
+
+        def color_map_color(value, cmap_name='Wistia', vmin=0, vmax=1):
+            cmap_name = plt.colormaps()[82+value]
+            norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+            cmap = cm.get_cmap(cmap_name)  
+            rgb = cmap(norm(abs(value)))[:3] 
+            color = matplotlib.colors.rgb2hex(rgb)
+            return color
+
+        f, (ax1, ax2, ax3) = plt.subplots(3, 1 ,sharex='col')
+        f.set_figheight(8)
+        f.set_figwidth(16)
+        for i in range(len(top_1)):
+          if i == len(top_1)-1:
+             ax2.plot(range(b[i], a[-1]), 
+                      [0]*len(range(b[i], a[-1])), 
+                      c =color_map_color(top_1[i]), linewidth = 10, label = features_dct_inv.get(top_1[i]))
+             ax3.plot(range(b[i], a[-1]), 
+                      [-0.5]*len(range(b[i], a[-1])), 
+                      c =color_map_color(top_2[i]), linewidth = 10, label = features_dct_inv.get(top_2[i]))
+          else:
+            print(i)
+            ax2.plot(range(b[i], b[i+1]), 
+                     [0]*len(range(b[i], b[i+1])), 
+                     c = color_map_color(top_1[i]), linewidth = 10, label = features_dct_inv.get(top_1[i]))
+            ax3.plot(range(b[i], b[i+1]), 
+                     [-0.5]*len(range(b[i], b[i+1])), 
+                     c = color_map_color(top_2[i]), linewidth = 10, label = features_dct_inv.get(top_2[i]))
+
+        ax2.legend(loc='center right')
+        ax3.legend(loc='center right')
+
+        ax1.set_title('MMD')
+        ax2.set_title('Most important feature')
+        ax3.set_title('2nd most important feature')
+        ax1.plot(preds_df)
+        ax1.plot(a ,preds_df[0].values[a], "x", color = 'red', markersize = 18)
+        f.savefig(os.path.join('results', exp, participant, 'feature_importance.png'), format = "png")
+        f0.savefig(os.path.join('results', exp, participant, 'running_correlations.png'), format = "png")
+
+ 
