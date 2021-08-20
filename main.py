@@ -52,7 +52,8 @@ if __name__ == '__main__':
 
     # load data
     X, y, X_val, y_val, X_test, y_test = load_data(args.data_path, args.n_steps, all_columns)
-    df = pd.read_csv('data/test_df.csv')
+
+    df = pd.read_csv(os.path.join(args.data_path, 'test_df.csv'))
     # create model
     if args.model == 'LSTM':
         model = LSTM(args.n_steps, n_features = X.shape[0])
