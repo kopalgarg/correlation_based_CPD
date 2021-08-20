@@ -8,5 +8,5 @@ Run\
 `--n_steps` Number of days of data used to make predictions 1 day into the future \
 `--r_window_size` Window size for running correlations  \
 `--data_path` Path to folder containing train_df.csv, test_df.csv, val_df.csv \
-`--CPD_data_type` Use "raw" or "running_correlations" for CPD \
+`--CPD_data_type` Use "raw" or "running_correlations" for CPD 
 
