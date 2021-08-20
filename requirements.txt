@@ -8,3 +8,4 @@ findpeaks
 peakdetect
 shap
 argparse
+lightgbm-3.1.1
