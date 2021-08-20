@@ -1,0 +1,2 @@
+Naming convention:
+  model_n_steps_r_window_size_f_wnd_dim_p_wnd_dim_CPD_data_type_target
