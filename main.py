@@ -44,9 +44,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Correlation-based CPD')
     parser.add_argument('--model', type=str, default='LSTM', help='Choose "LSTM" or "LightGBM"')
     parser.add_argument('--n_steps', type=int, default=15, help = 'number of days of data used in prediction model')
-    parser.add_argument('--r_window_size', type=int, default=11, help = 'window size for running correlations ')
+    parser.add_argument('--r_window_size', type=int, default=30, help = 'window size for running correlations ')
     parser.add_argument('--data_path', type=str, default='data/', help = 'should contain a train_df.csv, test_df.csv, val_df.csv')
     parser.add_argument('--CPD_data_type', type=str, default='running_correlations', help = 'use "raw" or "running_correlations" for CPD')
+    parser.add_argument('--f_wnd_dim', type = int, default= 10, help = 'f window dimension')
+    parser.add_argument('--p_wnd_dim', type = int, default= 25, help = 'p window dimension')
 
     args = parser.parse_args()
     
@@ -55,7 +57,7 @@ if __name__ == '__main__':
     df = pd.read_csv(os.path.join(args.data_path, 'test_df.csv'))
     
     n_features = X.shape[2]
-    exp = (args.model+'_'+str(args.r_window_size)+'_'+str(args.n_steps)+'_run01')
+    exp = (args.model+'_'+str(args.n_steps)+'_'+str(args.r_window_size)+'_'+str(args.f_wnd_dim)+'_'+str(args.p_wnd_dim)+'_'+args.CPD_data_type+'_'+all_columns[-1])
     
     # create model
     if args.model == 'LSTM':
@@ -77,7 +79,7 @@ if __name__ == '__main__':
     # KL-CPD
     KLCPD_columns = ["deep", "hr_average", "rmssd", 'temperature_delta','breath_average','rem']
 
-    for participant in df.participant_id.unique():
+    for participant in df.participant_id.unique()[:10]:
         df_sub = df[df['participant_id']==participant]
         df_sub = df_sub.fillna(method='ffill')
         df_sub = df_sub.fillna(method='bfill')
@@ -140,7 +142,7 @@ if __name__ == '__main__':
 
         dim, seq_length = ts.shape[1], ts.shape[0]
         # fit KL-CPD model and derive predictions 
-        model_kl = KL_CPD(dim)
+        model_kl = KL_CPD(dim, p_wnd_dim = args.p_wnd_dim, f_wnd_dim = args.f_wnd_dim)
         model_kl.fit(ts)
         preds = model_kl.predict(ts)
 
