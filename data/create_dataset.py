@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 import os
 
-daily_stressed = pd.read_parquet("~/stressrecovery/data/processed/survey/daily_stress.parquet")
-
 import numpy as np
 import torch
 import torch.nn as nn 
@@ -31,6 +29,7 @@ pd.set_option('display.max_columns', None)
 DATAPATH = "~/datasets/stressrecov"
 
 EXTENSION = "/oura"
+daily_stressed = pd.read_parquet("~/stressrecovery/data/processed/survey/daily_stress.parquet")
 
 sleep_df = pd.read_parquet("~/stressrecovery/data/processed/oura/sleep_concat.parquet")
 
