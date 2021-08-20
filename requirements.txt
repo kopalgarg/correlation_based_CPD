@@ -2,8 +2,8 @@ pandas==0.22.0
 keras==2.0.8
 tensorflow==1.15
 numpy==1.19.5
-scipy==1.7.1
-klcpd-0.1.0
+scipy
+klcpd
 findpeaks
 peakdetect
-shap-0.39.0
+shap
