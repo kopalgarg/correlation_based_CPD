@@ -1,5 +1,6 @@
 Requirements \
-`pip install -r requirements.txt`
+```pip install -r requirements.txt
+```
 
 Run\
 `python main.py --CPD_data_type = 'raw' --model 'LightGBM' --n_steps 15 r_window_size 15`
@@ -10,3 +11,8 @@ Run\
 `--data_path` Path to folder containing train_df.csv, test_df.csv, val_df.csv \
 `--CPD_data_type` Use "raw" or "running_correlations" for CPD 
 
+Experiment with the window size 
+```
+chmod +x run.sh
+./run.sh
+```
