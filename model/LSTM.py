@@ -6,7 +6,7 @@ from keras.layers import Dense
 from keras.layers import Activation
 from keras.layers import Dropout
 from keras.layers import Flatten
-
+import tensorflow as tf
 
 def LSTM(n_steps, n_features):
     model = tf.keras.Sequential()
